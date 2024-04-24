@@ -3,6 +3,7 @@ sys.path.append('./modules')
 
 import json
 import sys
+import argparse
 import importlib
 
 import warnings
@@ -27,11 +28,29 @@ def import_class(module_name, class_name):
 
     return class_
 
-if __name__ == "__main__":
-    config_file = sys.argv[1]
+def reset_config(config):
+    filename = config['filename']
+    config['urls'] = config['common_url']
+    config['seen'] = []
+
+    with open(f'config/{filename}_config.json', 'w') as f:
+        json.dump(config, f, indent=4)
+        
+    return config
+
+def main():
+    parser = argparse.ArgumentParser(description='Read config file')
+    parser.add_argument('--config_file', type=str, required=True, help='Path to the config file')
+    parser.add_argument('--reset', action='store_true', help='Reset flag (default: False)')
+
+    args = parser.parse_args()
     
-    with open(config_file, 'r') as f:
+    with open(args.config_file, 'r') as f:
         config = json.load(f)
+
+    if args.reset:
+        config = reset_config(config)
+        return
 
     module_name = config['module_name']
     class_name = config['class_name']
@@ -41,3 +60,6 @@ if __name__ == "__main__":
     scraper = scraper_module(config)
 
     scraper.parse_urls()
+
+if __name__ == "__main__":
+    main()
