@@ -24,7 +24,7 @@ def get_soup(url):
     else:
         return -1
 
-def has_href(self, a_tag):
+def has_href(a_tag):
     try:
         href = a_tag['href']
         return True
