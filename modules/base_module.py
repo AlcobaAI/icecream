@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import json
 
-from scrape_utils import get_soup
+from scrape_utils import get_soup, find_elements, has_href
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -20,12 +20,6 @@ class Scraper:
         
         self.df = df
         self.current_idx = df.shape[0]
-        
-    def has_href(self, a_tag):
-        try:
-            href = a_tag['href']
-            return True
-        except: return False
             
     def avoids_strings(self, a_tag):
         avoid = self.config['avoid']
@@ -56,6 +50,8 @@ class Scraper:
         filename = self.config['filename']
         with open(f'config/{filename}_config.json', 'w') as f:
             json.dump(self.config, f, indent=4)
+
+        print(f'* Saving Progress - current_size = {df.shape[0]}')
     
         df.to_json(f'data/{filename}.jsonl', lines = True, orient = 'records', force_ascii=False)
 
@@ -75,7 +71,9 @@ class Scraper:
                 self.save_progress(urls, seen)
             try:    
                 data = self.get_data(url)
-            except: continue
+            except Exception as e:
+                print(e)
+                continue
             
             self.process_data(data)
         
@@ -88,37 +86,33 @@ class Scraper:
 
     def search_elements(self, soup):
 
-        content_tag = self.config['content_tag']
-        content_class = self.config['content_class']
+        search_contents = self.config['search_contents']
 
-        if 'search_element_combinations' in self.config.keys():
-            search_combinations = self.config['search_element_combinations']
+        content_elements = find_elements(soup, search_contents)
 
-            content = soup.find(content_tag, class_ = content_class)
+        if 'search_elements' in self.config.keys():
+            search_combinations = self.config['search_elements']
 
             elements = []
 
-            for combination in search_combinations:
+            for content in content_elements:
                 for element in content.find_all(combination['tag']):
-                    match = True
-                    for key, value in combination.items():
-                        if key == 'tag':
-                            continue  # Skip tag criterion
-                        if value and key in element.attrs and value not in element[key]:
-                            match = False
-                            break
-                    if match:
-                        elements.append(element)
+                    sub_elements = find_elements(content, search_contents)
+
+                elements.extend(sub_elements)
 
             return elements
         else:
-            return soup.find(content_tag, class_ = content_class).findAll({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})
-        
+            elements = []
+            for content in content_elements:
+                elements = soup.find(content_tag, class_=content_class).findAll({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})
+                filtered_elements = [element for element in elements if not element.find({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})]
+                elements.extend(filtered_elements)
+            return elements
+
     def get_data(self, url):
 
         common_url = self.config['common_url']
-        content_tag = self.config['content_tag']
-        content_class = self.config['content_class']
 
         soup = get_soup(url)
         
@@ -126,6 +120,7 @@ class Scraper:
         
         try:
             text_elements = self.search_elements(soup)
+            text_elements = [t for t in text_elements if t.strip() != '']
             text = {f"{n} - {p.name}":p.text for n, p in enumerate(text_elements)}
             #text = '\n'.join([p.text for p in soup.find(content_tag, class_ = content_class).findAll({'p', 'h1', 'h2', 'h3', 'h4', 'li'})])
             data['url'] = url
@@ -133,7 +128,7 @@ class Scraper:
         except:
             pass
     
-        new_urls = [a for a in soup.findAll('a') if self.has_href(a) and self.has_any_filter(a) and self.avoids_strings(a)]
+        new_urls = [a for a in soup.findAll('a') if has_href(a) and self.has_any_filter(a) and self.avoids_strings(a)]
         new_urls = [common_url + a['href'] if common_url not in a['href'] else a['href'] for a in new_urls]
     
         data['new_urls'] = new_urls
@@ -141,6 +136,9 @@ class Scraper:
         return data
 
     def process_data(self, data):
+        if 'url' not in data.keys():
+            return
+            
         self.df.at[self.current_idx, 'url'] = data['url']
         self.df.at[self.current_idx, 'text'] = ''
         self.df.at[self.current_idx, 'text'] = data['text']
