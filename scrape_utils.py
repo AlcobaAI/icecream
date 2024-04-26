@@ -30,50 +30,54 @@ def has_href(a_tag):
         return True
     except: return False
             
-def find_elements_ordered(soup, search_criteria_list, exclude_criteria_list=None):
+def find_elements(soup, include_criteria_list, exclude_criteria_list=None):
     """
     Find elements using a list of include criteria provided as dictionaries and optionally exclude elements 
-    based on another list of criteria. Return them in the order they appear in the original HTML document, 
-    considering hierarchical relationships. Prioritizes child elements over parent elements if both match.
+    and their descendants based on another list of criteria. Return them in the order they appear in the 
+    original HTML document, considering hierarchical relationships.
     
     Args:
     soup (BeautifulSoup): The BeautifulSoup object to search within.
-    include_criteria_list (list of dicts): List containing dictionaries with search criteria.
-    exclude_criteria_list (list of dicts, optional): List to define elements to exclude.
+    include_criteria_list (list of dicts): A list containing dictionaries, each with a 'tag' and optional attributes like 'class_', 'id', and 'style'.
+    exclude_criteria_list (list of dicts, optional): A list of dictionaries to define elements to exclude using the same structure as include_criteria_list.
     
     Returns:
-    list: A list of unique elements matching any of the include criteria but not the exclude criteria, in the order they appear.
+    list: A list of unique elements matching any of the include criteria but not matching exclude criteria or their children, in the order they appear in the HTML.
     """
     all_elements = list(soup.find_all(True))
     element_index_map = {id(elem): idx for idx, elem in enumerate(all_elements)}
-    found_elements = {}
-    excluded_elements = set()
+    found_elements = []
+    found_element_ids = set()
 
+    # Find all elements matching the exclude criteria and their descendants
+    excluded_elements = set()
     if exclude_criteria_list:
-        for criteria in exclude_criteria_list:
+        for criteria_ in exclude_criteria_list:
+            criteria = criteria_.copy()
             tag_name = criteria.pop('tag')
             search_args = {key.replace('_', ''): value for key, value in criteria.items()}
             for element in soup.find_all(tag_name, **search_args):
                 excluded_elements.add(element)
+                excluded_elements.update(element.find_all())  # Include all descendants
 
-    for criteria in search_criteria_list:
-        if 'tag' not in criteria:
+    # Helper function to check if an element is a child of any previously found elements
+    def is_child_of_any(elem):
+        return any(found_elem in elem.parents for _, found_elem in found_elements)
+
+    for criteria_ in include_criteria_list:
+        criteria = criteria_.copy()
+        if 'tag' not in criteria.keys():
             raise ValueError("Each search criteria dictionary must include a 'tag' key.")
         
         tag_name = criteria.pop('tag')
         search_args = {key.replace('_', ''): value for key, value in criteria.items()}
 
         for element in soup.find_all(tag_name, **search_args):
-            if element not in excluded_elements:
-                element_id = id(element)
-                element_parents = set(element.parents)
-                # Check if any parent is in found_elements and replace the parent with the child
-                overlapping_parents = element_parents.intersection(found_elements.keys())
-                if overlapping_parents:
-                    for parent_id in overlapping_parents:
-                        del found_elements[parent_id]
-                found_elements[element_id] = (element_index_map[element_id], element)
+            element_id = id(element)
+            if element_id not in found_element_ids and not is_child_of_any(element) and element not in excluded_elements:
+                found_elements.append((element_index_map[element_id], element))
+                found_element_ids.add(element_id)
 
     # Sort elements by their original index and return only the elements
-    sorted_elements = sorted(found_elements.values(), key=lambda x: x[0])
-    return [elem[1] for elem in sorted_elements]
+    found_elements.sort(key=lambda x: x[0])
+    return [elem[1] for elem in found_elements]

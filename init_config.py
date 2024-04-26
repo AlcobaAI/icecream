@@ -4,7 +4,7 @@ import argparse
 def create_config_file(filename):
     """Creates a JSON configuration file with default settings."""
     config = {
-        'filename': '',
+        'filename': filename,
         'module_name': '',
         'save_interval': 100,
         'common_url': '',

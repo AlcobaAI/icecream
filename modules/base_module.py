@@ -5,6 +5,7 @@ import json
 from scrape_utils import get_soup, find_elements, has_href
 
 import warnings
+import traceback
 warnings.filterwarnings("ignore")
 
 class Scraper:
@@ -72,7 +73,9 @@ class Scraper:
             try:    
                 data = self.get_data(url)
             except Exception as e:
-                print(e)
+                print("An error occurred:")
+                traceback.print_exc()
+                #print(e)
                 continue
             
             self.process_data(data)
@@ -126,6 +129,8 @@ class Scraper:
             data['url'] = url
             data['text'] = text
         except:
+            print("An error occurred:")
+            traceback.print_exc()
             pass
     
         new_urls = [a for a in soup.findAll('a') if has_href(a) and self.has_any_filter(a) and self.avoids_strings(a)]
