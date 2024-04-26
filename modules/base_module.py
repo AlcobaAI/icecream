@@ -91,21 +91,21 @@ class Scraper:
         content_elements = find_elements(soup, search_contents)
 
         if 'search_elements' in self.config.keys():
-            search_combinations = self.config['search_elements']
+            search_elements = self.config['search_elements']
+            exclude_elements = self.config['exclude_elements'] if 'exclude_elements' in self.config.keys() else None
 
             elements = []
 
-            for content in content_elements:
-                for element in content.find_all(combination['tag']):
-                    sub_elements = find_elements(content, search_contents)
+            for content_elm in content_elements:
+                sub_elements = find_elements(content_elm, search_elements, exclude_elements)
 
                 elements.extend(sub_elements)
 
             return elements
         else:
             elements = []
-            for content in content_elements:
-                elements = soup.find(content_tag, class_=content_class).findAll({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})
+            for content_elm in content_elements:
+                elements = content_elm.findAll({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})
                 filtered_elements = [element for element in elements if not element.find({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})]
                 elements.extend(filtered_elements)
             return elements
