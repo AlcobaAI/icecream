@@ -6,7 +6,6 @@ def create_config_file(filename):
     config = {
         'filename': '',
         'module_name': '',
-        'class_name': '',
         'save_interval': 100,
         'common_url': '',
         'avoid': [''],
