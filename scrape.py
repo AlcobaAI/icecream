@@ -30,7 +30,7 @@ def import_module_class(module_name):
 
 def reset_config(config):
     filename = config['filename']
-    config['urls'] = config['common_url']
+    config['urls'] = [config['common_url']]
     config['seen'] = []
 
     with open(f'config/{filename}_config.json', 'w') as f:

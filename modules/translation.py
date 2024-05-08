@@ -1,29 +1,14 @@
 from base_module import Scraper
 
-class TranslationScraper(Scraper):
-    def __init__(self, config):
-        super().__init__(config)
-
-    def get_data(self, url):
-        return super().get_data(url)
-
-    def has_href(self, a_tag):
-        return super().has_href(a_tag)
-
-    def avoids_strings(self, a_tag):
-        return super().avoids_strings(a_tag)
-
-    def has_any_filter(self, a_tag):
-        return super().has_any_filter(a_tag)
-
-    def save_progress(self, urls, seen):
-        super().save_progress(urls, seen)
-
-    def get_data(self, url):
-        return super().get_data(url)
-
-    def search_elements(self, soup):
-        return super().search_elements(soup)
+class Scraper(Scraper):
+    def __getattr__(self, name):
+        # Automatically delegate unknown method calls to the parent class
+        attr = getattr(super(), name)
+        if callable(attr):
+            def method(*args, **kwargs):
+                return attr(*args, **kwargs)
+            return method
+        return attr
         
     def parse_urls(self):
         urls = self.config['urls']
@@ -45,8 +30,7 @@ class TranslationScraper(Scraper):
             try:    
                 data = self.get_data(url)
                 data_en = self.get_data(url.replace(ar_lang_code, en_lang_code))
-                if 'text' in data.keys() and 'text' in data_en.keys():
-                    self.process_data(data, data_en)
+                self.process_data(data, data_en)
 
             except Exception as e:
                 print(e)
@@ -60,6 +44,9 @@ class TranslationScraper(Scraper):
         self.save_progress(urls, seen)
     
     def process_data(self, data_ar, data_en):
+        if 'text' not in data_ar.keys() or 'text' not in data_en.keys():
+            return
+            
         self.df.at[self.current_idx, 'url'] = data_ar['url']
         self.df.at[self.current_idx, 'text_ar'] = ''
         self.df.at[self.current_idx, 'text_ar'] = data_ar['text']

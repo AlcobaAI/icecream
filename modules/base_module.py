@@ -23,7 +23,13 @@ class Scraper:
         self.current_idx = df.shape[0]
             
     def avoids_strings(self, a_tag):
+        if 'avoid' not in self.config.keys():
+            return True
         avoid = self.config['avoid']
+
+        if len(avoid) == 0:
+            return True
+            
         href = a_tag['href']
         for seq in avoid:
             if seq in href.lower():
@@ -108,8 +114,8 @@ class Scraper:
         else:
             elements = []
             for content_elm in content_elements:
-                elements = content_elm.findAll({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})
-                filtered_elements = [element for element in elements if not element.find({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})]
+                content_sub_elms = content_elm.findAll({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})
+                filtered_elements = [element for element in content_sub_elms if not element.find({'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li'})]
                 elements.extend(filtered_elements)
             return elements
 
@@ -123,7 +129,7 @@ class Scraper:
         
         try:
             text_elements = self.search_elements(soup)
-            text_elements = [t for t in text_elements if t.strip() != '']
+            text_elements = [t for t in text_elements if t.text.strip() != '' and t.text.strip() != ' ']
             text = {f"{n} - {p.name}":p.text for n, p in enumerate(text_elements)}
             #text = '\n'.join([p.text for p in soup.find(content_tag, class_ = content_class).findAll({'p', 'h1', 'h2', 'h3', 'h4', 'li'})])
             data['url'] = url
@@ -134,8 +140,9 @@ class Scraper:
             pass
     
         new_urls = [a for a in soup.findAll('a') if has_href(a) and self.has_any_filter(a) and self.avoids_strings(a)]
-        new_urls = [common_url + a['href'] if common_url not in a['href'] else a['href'] for a in new_urls]
-    
+        new_urls = [common_url + a['href'] if 'http' not in a['href'] else a['href'] for a in new_urls]
+        new_urls = [a for a in new_urls if common_url in a]
+
         data['new_urls'] = new_urls
         
         return data
