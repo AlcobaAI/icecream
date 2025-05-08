@@ -9,7 +9,6 @@ A robust, configurable, and modular web scraping framework for crawling and extr
 - ✅ **Modular Design** — Plug-and-play architecture for custom scraper modules
 - 📁 **Config-Driven** — Define scraping behavior through JSON configuration
 - 🔁 **Checkpointing** — Automatically saves progress to resume interrupted runs
-- 🌍 **Translation Support** — Handles dual-language pages (e.g., Arabic ↔ English)
 - 🔎 **Selective Extraction** — Finds content with flexible tag-based filters
 - 🛠️ **CLI Interface** — Fully scriptable for automation
 
