@@ -5,9 +5,10 @@ from time import sleep
 import warnings
 warnings.filterwarnings("ignore")
 
-def request_url(url):
-    sleep_time = randint(3,5)
-    sleep(sleep_time)
+def request_url(url, should_sleep = False):
+    if should_sleep:
+        sleep_time = randint(3,5)
+        sleep(sleep_time)
     return requests.get(url, impersonate="chrome110", verify=False, timeout=300).content
 
 def get_soup(url):
@@ -29,6 +30,17 @@ def has_href(a_tag):
         href = a_tag['href']
         return True
     except: return False
+
+def extract_text_with_inline_links(elm):
+    result = ""
+    for content in elm.descendants:
+        if content.name == 'a' and content.has_attr('href'):
+            text = content.get_text(strip=True)
+            href = content['href']
+            result += f"[{text}]({href})"
+        elif content.string and not getattr(content, 'name', None):
+            result += content.string
+    return result.strip()
             
 def find_elements(soup, include_criteria_list, exclude_criteria_list=None):
     """
