@@ -11,6 +11,7 @@ A robust, configurable, and modular web scraping framework for crawling and extr
 - 🔁 **Checkpointing** — Automatically saves progress to resume interrupted runs
 - 🔎 **Selective Extraction** — Finds content with flexible tag-based filters
 - 🛠️ **CLI Interface** — Fully scriptable for automation
+- ☁️ **S3 Support** — Save and resume progress using Amazon S3 buckets
 
 ---
 
@@ -26,11 +27,12 @@ A robust, configurable, and modular web scraping framework for crawling and extr
 ├── modules/
 │   ├── base_module.py      # Generic scraping logic
 │   └── translation.py      # Extension for dual-language scraping
-
----
 ```
 
+---
+
 ## ⚙️ How to Use
+
 1️⃣ Create a Config File
 ```bash
 python init_config.py myproject
@@ -40,16 +42,18 @@ python init_config.py myproject
 ```bash
 python scrape.py --config_file config/myproject_config.json
 ```
-To restart and clear previous progress:
 
+To restart and clear previous progress:
 ```bash
 python scrape.py --config_file config/myproject_config.json --reset
 ```
 
-## 🔧 Configuration Guide
-A sample config/example_config.json file:
+---
 
-```bash
+## 🔧 Configuration Guide
+
+A sample `config/example_config.json` file:
+```json
 {
   "filename": "example",
   "module_name": "modules.base_module",
@@ -63,27 +67,39 @@ A sample config/example_config.json file:
     {"tag": "p"}
   ],
   "urls": ["https://example.com/start"],
-  "seen": []
+  "seen": [],
+  "use_s3": false,
+  "s3_bucket": "",
+  "s3_prefix": ""
 }
 ```
 
-## 🌍 Translation Module Example
-Set "module_name": "modules.translation" and add:
+---
 
-```bash
+## 🌍 Translation Module Example
+
+Set `"module_name": "modules.translation"` and add:
+
+```json
 {
   "en_lang_code": "/en/",
   "ar_lang_code": "/ar/",
   "category": "news"
 }
 ```
+
 This will scrape Arabic and English versions of the same page and pair them.
 
-## 🧠 Output Format
-Saved as data/<filename>.jsonl (one JSON object per line):
+---
 
-Base Module:
-```bash
+## 🧠 Output Format
+
+Supports two formats: `json` (default) and `markdown`. Set `output_format` in the config file.
+
+Saved as `data/<filename>.jsonl` (one JSON object per line):
+
+**Base Module:**
+```json
 {
   "url": "https://example.com/page",
   "text": {
@@ -92,9 +108,9 @@ Base Module:
   }
 }
 ```
-Translation Module:
 
-```bash
+**Translation Module:**
+```json
 {
   "url": "https://example.com/ar/page",
   "text_ar": { ... },
@@ -102,6 +118,9 @@ Translation Module:
   "category": "news"
 }
 ```
-## 🔌 Creating Custom Scraper Modules
-You can extend the base scraper by writing your own in modules/. 
 
+---
+
+## 🔌 Creating Custom Scraper Modules
+
+You can extend the base scraper by writing your own in `modules/`. Inherit from the base class and override methods like `process_data()` or `save_record()` as needed.
